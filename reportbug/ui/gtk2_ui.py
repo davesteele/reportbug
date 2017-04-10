@@ -57,7 +57,6 @@ gtkspellcheck = None
 
 import sys
 import re
-import os
 import traceback
 from queue import Queue
 import threading

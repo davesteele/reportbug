@@ -8,7 +8,6 @@ from nose.plugins.attrib import attr
 import debianbts
 import mock
 import subprocess
-import subprocess
 
 
 class TestUtils(unittest.TestCase):

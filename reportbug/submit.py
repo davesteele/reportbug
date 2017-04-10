@@ -24,7 +24,6 @@ import os
 import re
 import shlex
 from subprocess import Popen, STDOUT, PIPE
-import email
 import smtplib
 import socket
 import email
