@@ -152,9 +152,15 @@ def mime_attach(body, attachments, charset, body_charset=None):
 
         maintype, subtype = ctype.split('/', 1)
         if maintype == 'text':
-            fp = open(attachment, 'rU')
-            part = MIMEText(fp.read())
-            fp.close()
+            try:
+                with open(attachment, 'rU') as fp:
+                    part = MIMEText(fp.read())
+            except UnicodeDecodeError:
+                fp = open(attachment, 'rb')
+                part = MIMEBase(maintype, subtype)
+                part.set_payload(fp.read())
+                fp.close()
+                email.encoders.encode_base64(part)
         elif maintype == 'message':
             fp = open(attachment, 'rb')
             part = MIMEMessage(email.message_from_file(fp),

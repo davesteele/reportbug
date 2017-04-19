@@ -180,6 +180,13 @@ def search_pipe(searchfile, use_dlocate=True):
     return (pipe, use_dlocate)
 
 
+def get_command_output(cmd):
+    use_shell = False
+    if isinstance(cmd, str) and ' ' in cmd:
+        use_shell = True
+    return subprocess.run(cmd, shell=use_shell, stdout=subprocess.PIPE).stdout.decode(errors='backslashreplace')
+
+
 def query_dpkg_for(filename, use_dlocate=True):
     try:
         x = os.getcwd()
@@ -353,10 +360,10 @@ def get_package_status(package, avail=False):
 
     packarg = pipes.quote(package)
     if avail:
-        output = subprocess.getoutput(
+        output = get_command_output(
             "COLUMNS=79 dpkg --print-avail %s 2>/dev/null" % packarg)
     else:
-        output = subprocess.getoutput(
+        output = get_command_output(
             "COLUMNS=79 dpkg --status %s 2>/dev/null" % packarg)
 
     for line in output.split(os.linesep):
@@ -511,7 +518,7 @@ def get_avail_database():
 
 
 def available_package_description(package):
-    data = subprocess.getoutput('apt-cache show ' + pipes.quote(package))
+    data = get_command_output('apt-cache show ' + pipes.quote(package))
     descre = re.compile('^Description(?:-.*)?: (.*)$')
     for line in data.split('\n'):
         m = descre.match(line)
@@ -523,7 +530,7 @@ def available_package_description(package):
 def get_source_name(package):
     packages = []
 
-    data = subprocess.getoutput('apt-cache showsrc ' + pipes.quote(package))
+    data = get_command_output('apt-cache showsrc ' + pipes.quote(package))
     packre = re.compile(r'^Package: (.*)$')
     for line in data.split('\n'):
         m = packre.match(line)
@@ -537,7 +544,7 @@ def get_source_package(package):
     retlist = []
     found = {}
 
-    data = subprocess.getoutput('apt-cache showsrc ' + pipes.quote(package))
+    data = get_command_output('apt-cache showsrc ' + pipes.quote(package))
     binre = re.compile(r'^Binary: (.*)$')
     for line in data.split('\n'):
         m = binre.match(line)
@@ -704,7 +711,7 @@ def get_changed_config_files(conffiles, nocompress=False):
             confinfo[filename] = msg
             continue
 
-        filemd5 = subprocess.getoutput('md5sum ' + pipes.quote(filename)).split()[0]
+        filemd5 = get_command_output('md5sum ' + pipes.quote(filename)).split()[0]
         if filemd5 == md5sum:
             continue
 
@@ -732,7 +739,7 @@ DISTORDER = ['oldstable', 'stable', 'testing', 'unstable', 'experimental']
 def get_debian_release_info():
     debvers = debinfo = verfile = warn = ''
     dists = []
-    output = subprocess.getoutput('apt-cache policy 2>/dev/null')
+    output = get_command_output('apt-cache policy 2>/dev/null')
     if output:
         mre = re.compile('\s+(\d+)\s+.*$\s+release\s.*o=(Ubuntu|Debian|Debian Ports),a=([^,]+),', re.MULTILINE)
         found = {}
@@ -776,11 +783,11 @@ def get_debian_release_info():
 
 
 def lsb_release_info():
-    return subprocess.getoutput('lsb_release -a 2>/dev/null') + '\n'
+    return get_command_output('lsb_release -a 2>/dev/null') + '\n'
 
 
 def get_arch():
-    arch = subprocess.getoutput('COLUMNS=79 dpkg --print-architecture 2>/dev/null')
+    arch = get_command_output('COLUMNS=79 dpkg --print-architecture 2>/dev/null')
     if not arch:
         un = os.uname()
         arch = un[4]
@@ -791,7 +798,7 @@ def get_arch():
 
 
 def get_multiarch():
-    out = subprocess.getoutput('COLUMNS=79 dpkg --print-foreign-architectures 2>/dev/null')
+    out = get_command_output('COLUMNS=79 dpkg --print-foreign-architectures 2>/dev/null')
     return ', '.join(out.splitlines())
 
 
