@@ -92,11 +92,11 @@ fhs_directories = ['/', '/usr', '/usr/share', '/var', '/usr/X11R6',
                    '/usr/man', '/usr/doc', '/usr/bin']
 
 # A map between codenames and suites
-CODENAME2SUITE = {'squeeze': 'oldoldstable',
-                'wheezy': 'oldstable',
-                'jessie': 'stable',
-                'stretch': 'testing',
-                'buster': 'next-testing',
+CODENAME2SUITE = {'wheezy': 'oldoldstable',
+                'jessie': 'oldstable',
+                'stretch': 'stable',
+                'buster': 'testing',
+                'bullseye': 'next-testing',
                 'sid': 'unstable',
                 'experimental': 'experimental'}
 SUITE2CODENAME = dict([(suite, codename) for codename, suite in list(CODENAME2SUITE.items())])
@@ -130,7 +130,7 @@ def search_path_for(filename):
     if d:
         return realpath(filename)
 
-    path = os.environ.get("PATH", os.defpath).split('/')
+    path = os.environ.get("PATH", os.defpath).split(':')
     for d in pathdirs:
         if d not in path:
             path.append(d)
@@ -338,7 +338,7 @@ def get_package_status(package, avail=False):
     statusre = re.compile('Status: ')
     originre = re.compile('Origin: ')
     bugsre = re.compile('Bugs: ')
-    descre = re.compile('Description(?:-.*)?: ')
+    descre = re.compile('Description(?:-[a-zA-Z]+)?: ')
     fullre = re.compile(' ')
     srcre = re.compile('Source: ')
     sectionre = re.compile('Section: ')
@@ -351,6 +351,7 @@ def get_package_status(package, avail=False):
     recommends = []
     suggests = []
     confmode = False
+    descmode = False
     state = ''
 
     try:
@@ -361,7 +362,7 @@ def get_package_status(package, avail=False):
     packarg = pipes.quote(package)
     if avail:
         output = get_command_output(
-            "COLUMNS=79 dpkg --print-avail %s 2>/dev/null" % packarg)
+            "LC_ALL=C.UTF-8 apt-cache show %s 2>/dev/null" % packarg)
     else:
         output = get_command_output(
             "COLUMNS=79 dpkg --status %s 2>/dev/null" % packarg)
@@ -371,12 +372,18 @@ def get_package_status(package, avail=False):
         if not line:
             continue
 
+        if descmode:
+            if line[0] == ' ':
+                fulldesc.append(line)
+            else:
+                descmode = False
+
         if confmode:
             if line[:2] != ' /':
                 confmode = False
             else:
                 # re is used to identify also conffiles with spaces in the name
-                conffiles = conffiles + [re.findall(r' (.+) ([0-9a-f]+).*$', line)[0]]
+                conffiles += re.findall(r' (.+) ([0-9a-f]+).*$', line)
 
         if versionre.match(line):
             (crud, pkgversion) = line.split(": ", 1)
@@ -392,6 +399,7 @@ def get_package_status(package, avail=False):
             (crud, bugs) = line.split(": ", 1)
         elif descre.match(line):
             (crud, desc) = line.split(": ", 1)
+            descmode = True
         elif dependsre.match(line):
             (crud, thisdepends) = line.split(": ", 1)
             # Remove versioning crud
@@ -419,8 +427,6 @@ def get_package_status(package, avail=False):
             src_name = src_name.split()[0]
         elif sectionre.match(line):
             crud, section = line.split(": ", 1)
-        elif desc and line[0] == ' ':
-            fulldesc.append(line)
 
     installed = False
     if status:
@@ -519,7 +525,7 @@ def get_avail_database():
 
 def available_package_description(package):
     data = get_command_output('apt-cache show ' + pipes.quote(package))
-    descre = re.compile('^Description(?:-.*)?: (.*)$')
+    descre = re.compile('^Description(?:-[a-zA-Z]+)?: (.*)$')
     for line in data.split('\n'):
         m = descre.match(line)
         if m:
@@ -593,7 +599,7 @@ def get_package_info(packages, skip_notfound=False):
     packob = re.compile('^Package: (?P<pkg>.*)$', re.MULTILINE)
     statob = re.compile('^Status: (?P<stat>.*)$', re.MULTILINE)
     versob = re.compile('^Version: (?P<vers>.*)$', re.MULTILINE)
-    descob = re.compile('^Description(?:-.*)?: (?P<desc>.*)$', re.MULTILINE)
+    descob = re.compile('^Description(?:-[a-zA-Z]+)?: (?P<desc>.*)$', re.MULTILINE)
 
     ret = []
     for p in packinfo:
@@ -655,6 +661,8 @@ def get_dependency_info(package, depends, rel="depends on"):
 
     dependencies = []
     for dep in depends:
+        # drop possible architecture qualifier from package names
+        dep = [d.split(':')[0] for d in dep]
         for bit in dep:
             dependencies.append((tuple(dep), bit))
 
@@ -783,11 +791,11 @@ def get_debian_release_info():
 
 
 def lsb_release_info():
-    return get_command_output('lsb_release -a 2>/dev/null') + '\n'
+    return get_command_output('lsb_release -a 2>/dev/null')
 
 
 def get_arch():
-    arch = get_command_output('COLUMNS=79 dpkg --print-architecture 2>/dev/null')
+    arch = get_command_output('COLUMNS=79 dpkg --print-architecture 2>/dev/null').strip()
     if not arch:
         un = os.uname()
         arch = un[4]
@@ -1196,7 +1204,7 @@ def launch_mbox_reader(cmd, url, http_proxy, timeout):
         return
     (fd, fname) = TempFile()
     try:
-        for line in mbox:
+        for line in mbox.splitlines():
             fd.write(line)
         fd.close()
         if cmd is not None:

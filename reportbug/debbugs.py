@@ -180,6 +180,7 @@ debother = {
     'installation-reports': 'Reports of installation problems with stable & testing',
     'jenkins.debian.org': 'Issues with the jenkins.debian.org service',
     'lists.debian.org': 'The mailing lists, debian-*@lists.debian.org',
+    'manpages.debian.org': 'Issues with the Debian Manpages Website and coordination of maintenance',
     'mirrors': 'Problems with the official mirrors',
     'nm.debian.org': 'New Member process and nm.debian.org webpages',
     'pet.debian.net': 'The Debian Package Entropy Tracker',
@@ -967,15 +968,9 @@ def parse_html_report(number, url, http_proxy, timeout, followups=False, cgi=Tru
         return None
 
     parser = BTSParser(cgi=cgi, followups=followups)
-    for line in page:
+    for line in page.splitlines():
         parser.feed(line)
     parser.close()
-
-    try:
-        page.fp._sock.recv = None
-    except:
-        pass
-    page.close()
 
     items = parser.preblock
     title = "#%d: %s" % (number, parser.title)
@@ -1011,13 +1006,7 @@ def parse_mbox_report(number, url, http_proxy, timeout, followups=False):
         return None
 
     # Make this seekable
-    wholefile = io.StringIO(page.read())
-
-    try:
-        page.fp._sock.recv = None
-    except:
-        pass
-    page.close()
+    wholefile = io.StringIO(page)
 
     mbox = mailbox.UnixMailbox(wholefile, msgfactory)
     title = ''
@@ -1131,14 +1120,9 @@ def get_reports(package, timeout, system='debian', mirrors=None, version=None,
         #    return (0, None, None)
 
         parser = BTSParser()
-        for line in page:
+        for line in page.splitlines():
             parser.feed(line)
         parser.close()
-        try:
-            page.fp._sock.recv = None
-        except:
-            pass
-        page.close()
 
         return parser.bugcount, parser.title, parser.hierarchy
 

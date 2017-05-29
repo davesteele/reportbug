@@ -1,4 +1,4 @@
-Format-Specification: http://wiki.debian.org/Proposals/CopyrightFormat
+Format-Specification: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Author: Chris Lawrence <lawrencc@debian.org>
 Upstream-Author: Sandro Tosi <morph@debian.org>
 Packaged-By: Chris Lawrence <lawrencc@debian.org>

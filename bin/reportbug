@@ -1051,7 +1051,7 @@ def main():
     if options.draftpath:
         options.draftpath = os.path.expanduser(options.draftpath)
         if not os.path.exists(options.draftpath):
-            print("The directory % does not exist; exiting." % options.draftpath)
+            ewrite("The directory %s does not exist; exiting.\n" % options.draftpath)
             sys.exit(1)
 
     if options.mua and not options.template:

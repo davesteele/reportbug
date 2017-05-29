@@ -86,7 +86,7 @@ class bugreport(object):
         locinfo = []
         langsetting = os.environ.get('LANG', 'C')
         allsetting = os.environ.get('LC_ALL', '')
-        for setting in ('LANG', 'LC_CTYPE'):
+        for setting in ('LANG', 'LC_CTYPE', 'LANGUAGE'):
             if setting == 'LANG':
                 env = langsetting
             else:

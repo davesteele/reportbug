@@ -1,3 +1,51 @@
+reportbug (7.1.7) unstable; urgency=medium
+
+  * reportbug/utils.py
+    - fix description regex to match only textual description (and not the MD5);
+      patch by Nis Martensen; Closes: #863322
+    - switch to use apt-cache instead of dpkg --print-avail; patch by Nis
+      Martensen
+    - get_command_output() doesnt strip a trailing new-line, so deal with that
+      behavior when running lsb_release and dpkg --print-architecture; patch by
+      Nis Martensen; Closes: #861153
+    - update suites names: fade out squeeze (wheezy is now oldoldstable) and
+      introduce buster (testing), bullseye (next-testing); Closes: #862801
+    - in search_path_for, split PATH directories using ':'; patch by Kamaraju
+      Kusumanchi; Closes: #827088
+    - strip arch-qualifier when looking up dependencies information; patch by
+      Nis Martensen; Closes: #749884
+    - fix a crash when parsing the config files lines in the package
+      information; patch by Nis Martensen; Closes: #857013, #846053, #826534
+  * reportbug/debbugs.py
+    - add manpages.debian.org to pseudo-packages list; Closes: #861859
+  * debian/control
+    - update emacs dependencies to emacs24 (default) and emacs25 (alternative)
+    - remove Chris Lawrence from Uploaders, thanks for all you've done for
+      reportbug!!
+    - switch Vcs-* URLs to HTTPS
+  * remove double imports
+  * debian/desktop
+    - add Danish translation to desktop file; patch by scootergrisen;
+      Closes: #855973
+  * reportbug/bugreport.py
+    - add LANGUAGE env var to locales bugreport section; Closes: #840898
+  * bin/querybts
+    - url_open() now returns a string, no need to read() it anymore; also
+      replace URLError exception handling with NoNetwork; Closes: #859274
+  * reportbug/debbugs.py, reportbug/utils.py
+    - Finish open_url return type conversion: url_open() now returns a string
+      and no longer an HTTPRespons object; patch by Nis Martensen; extends the
+      fix for #859274
+  * bin/reportbug
+    - fix error formatting when printing the error for draft directory
+      non-existing; patch by Gaetano Guerriero; Closes: #816375
+  * doc/README.source
+    - update README.source to the current source layout; Closes: #827002
+  * debian/copyright
+    - switch the Format field to the URL in the packaging-manuals
+
+ -- Sandro Tosi <morph@debian.org>  Mon, 29 May 2017 16:00:17 -0400
+
 reportbug (7.1.6) unstable; urgency=medium
 
   * reportbug/utils.py

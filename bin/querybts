@@ -168,16 +168,16 @@ def main():
                     url = debbugs.get_report_url(options.system, num, options.archived, mbox=True)
                     try:
                         report = urlutils.open_url(url, timeout=options.timeout)
-                        sys.stdout.write(report.read())
-                    except urlutils.urllib2.URLError as ex:
+                        sys.stdout.write(report)
+                    except NoNetwork as ex:
                         print("Error while accessing mbox report (%s)." % ex, file=sys.stderr)
             else:
                 num = int(m.group(1))
                 url = debbugs.get_report_url(options.system, num, options.archived, mbox=True)
                 try:
                     report = urlutils.open_url(url, timeout=options.timeout)
-                    sys.stdout.write(report.read())
-                except urlutils.urllib2.URLError as ex:
+                    sys.stdout.write(report)
+                except NoNetwork as ex:
                     print("Error while accessing mbox report (%s)." % ex, file=sys.stderr)
                     sys.exit(1)
         return
