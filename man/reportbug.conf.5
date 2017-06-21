@@ -166,9 +166,19 @@ with the default:
 .TP
 .B mua
 The mail user agent to use (the default is empty, to use an internal
-mailer). Example:
+mailer). The string "%s" is replaced with the path to the file containing
+the message to be sent. If not present, the path is set as the last
+argument. Example:
 
 \fBmua\fP \fI'mutt \-H'\fP
+
+.TP
+.B mua_version
+If the \fBmua\fP option is used, this specifies a MUA command-line
+option that causes the MUA to return without action. This is used to
+verify that the MUA is installed and available. Example:
+
+\fBmua_version\fP \fI'\-h'\fP
 
 .TP
 .B mutt

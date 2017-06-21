@@ -865,21 +865,19 @@ USERFILE = os.path.expanduser('~/.reportbugrc')
 FILES = ('/etc/reportbug.conf', USERFILE)
 
 CONFIG_ARGS = (
-    'sendto', 'severity', 'mua', 'mta', 'email', 'realname', 'bts', 'verify',
-    'replyto', 'http_proxy', 'smtphost', 'editor', 'debconf', 'justification',
-    'sign', 'nocc', 'nocompress', 'dontquery', 'noconf', 'mirrors', 'keyid',
-    'headers', 'interface', 'template', 'mode', 'check_available', 'query_src',
-    'printonly', 'offline', 'check_uid', 'smtptls', 'smtpuser', 'smtppasswd',
-    'paranoid', 'mbox_reader_cmd', 'max_attachment_size')
+    'sendto', 'severity', 'mua', 'mua_version', 'mta', 'email', 'realname',
+    'bts', 'verify', 'replyto', 'http_proxy', 'smtphost', 'editor', 'debconf',
+    'justification', 'sign', 'nocc', 'nocompress', 'dontquery', 'noconf',
+    'mirrors', 'keyid', 'headers', 'interface', 'template', 'mode',
+    'check_available', 'query_src', 'printonly', 'offline', 'check_uid',
+    'smtptls', 'smtpuser', 'smtppasswd', 'paranoid', 'mbox_reader_cmd',
+    'max_attachment_size')
 
 
 class Mua:
-    command = ""
-    name = ""
-
-    def __init__(self, command):
+    def __init__(self, name, command):
         self.command = command
-        self.name = command.split()[0]
+        self.name = name
 
     def send(self, filename):
         mua = self.command
@@ -892,9 +890,8 @@ class Mua:
 
 
 class Gnus(Mua):
-    name = "gnus"
-
     def __init__(self):
+        self.name = "gnus"
         pass
 
     def send(self, filename):
@@ -908,78 +905,58 @@ class Gnus(Mua):
 
 
 MUA = {
-    'mutt': Mua('mutt -H'),
-    'mh': Mua('/usr/bin/mh/comp -use -file'),
+    'mutt': Mua('mutt', 'mutt -H'),
+    'mh': Mua('mh', '/usr/bin/mh/comp -use -file'),
+    'nmh': Mua('nmh', '/usr/bin/mh/comp -use -file'),
     'gnus': Gnus(),
-    'claws-mail': Mua('claws-mail --compose-from-file'),
+    'claws-mail': Mua('claws-mail', 'claws-mail --compose-from-file'),
 }
-MUA['nmh'] = MUA['mh']
+
 
 # TODO: convert them to class methods
 MUAVERSION = {
-    MUA['mutt']: 'mutt -v',
-    MUA['mh']: '/usr/bin/mh/comp -use -file',
-    MUA['gnus']: 'emacs --version',
-    MUA['claws-mail']: 'claws-mail --version',
+    'mutt': 'mutt -v',
+    'mh': '/usr/bin/mh/comp -use -file',
+    'nmh': '/usr/bin/mh/comp -use -file',
+    'gnus': 'emacs --version',
+    'claws-mail': 'claws-mail --version',
 }
 
 
-def mua_is_supported(mua):
-    # check if the mua is supported by reportbug
-    if mua == 'mh' or mua == MUA['mh']:
-        mua_tmp = 'mh'
-    elif mua == 'nmh' or mua == MUA['nmh']:
-        mua_tmp = 'mh'
-    elif mua == 'gnus' or mua == MUA['gnus']:
-        mua_tmp = 'gnus'
-    elif mua == 'mutt' or mua == MUA['mutt']:
-        mua_tmp = 'mutt'
-    elif mua == 'claws-mail' or mua == MUA['claws-mail']:
-        mua_tmp = 'claws-mail'
+def mua_create(muacmd, verstr):
+    global MUA, MUAVERSION
+
+    if muacmd in MUA:
+        mua = MUA[muacmd]
     else:
-        mua_tmp = mua
-    if mua_tmp not in MUA:
-        return False
-    else:
-        return True
+        muaname = muacmd.split(' ')[0]
+        mua = Mua(muaname, muacmd)
+        MUA[muaname] = mua
+        MUAVERSION[muaname] = "{0} {1}".format(muaname, verstr)
+
+    return mua
+
+
+def mua_version_cmd(mua):
+    return MUAVERSION[mua]
 
 
 def mua_exists(mua):
-    # check if the mua is available on the system
-    if mua == 'mh' or mua == MUA['mh']:
-        mua_tmp = MUA['mh']
-    elif mua == 'nmh' or mua == MUA['nmh']:
-        mua_tmp = MUA['mh']
-    elif mua == 'gnus' or mua == MUA['gnus']:
-        mua_tmp = MUA['gnus']
-    elif mua == 'mutt' or mua == MUA['mutt']:
-        mua_tmp = MUA['mutt']
-    elif mua == 'claws-mail' or mua == MUA['claws-mail']:
-        mua_tmp = MUA['claws-mail']
-    else:
-        mua_tmp = MUA[mua]
     output = '/dev/null'
+    muaname = mua.get_name()
     if os.path.exists(output):
         try:
-            returnvalue = subprocess.call(MUAVERSION[mua_tmp], stdout=open(output, 'w'), stderr=subprocess.STDOUT,
+            returnvalue = subprocess.call(mua_version_cmd(muaname), stdout=open(output, 'w'), stderr=subprocess.STDOUT,
                                           shell=True)
         except (IOError, OSError):
-            returnvalue = subprocess.call(MUAVERSION[mua_tmp], shell=True)
+            returnvalue = subprocess.call(mua_version_cmd(muaname), shell=True)
     else:
-        returnvalue = subprocess.call(MUAVERSION[mua_tmp], shell=True)
+        returnvalue = subprocess.call(mua_version_cmd(muaname), shell=True)
     # 127 is the shell standard return value to indicate a 'command not found' result
     if returnvalue == 127:
         return False
     else:
         return True
-
-
-def mua_name(mua):
-    # in case the user specifies only the mua name in --mua, returns the default options
-    if mua in MUA:
-        return MUA[mua]
-    else:
-        return mua
 
 
 def first_run():
@@ -1019,9 +996,9 @@ def parse_config_files():
                 elif token in ('printonly', 'template', 'offline'):
                     args[token] = True
                 elif token in ('email', 'realname', 'replyto', 'http_proxy',
-                               'smtphost', 'editor', 'mua', 'mta', 'smtpuser',
-                               'smtppasswd', 'justification', 'keyid',
-                               'mbox_reader_cmd'):
+                               'smtphost', 'editor', 'mua', 'mua_version',
+                               'mta', 'smtpuser', 'smtppasswd',
+                               'justification', 'keyid', 'mbox_reader_cmd'):
                     bit = lex.get_token()
                     args[token] = bit
                 elif token in ('no-smtptls', 'smtptls'):

@@ -372,26 +372,31 @@ class TestSystemInformation(unittest.TestCase):
 
 
 class TestMua(unittest.TestCase):
-    def test_mua_is_supported(self):
-
-        for mua in ('mh', 'nmh', 'gnus', 'mutt', 'claws-mail'):
-            self.assertTrue(utils.mua_is_supported(mua))
-
-        self.assertFalse(utils.mua_is_supported('mua-of-my-dreams'))
-
     def test_mua_exists(self):
 
-        for mua in ('mh', 'nmh', 'gnus', 'mutt', 'claws-mail'):
-            if not utils.mua_exists(mua):
-                self.fail("%s MUA program not available" % mua)
+        for muaname in ('mh', 'nmh', 'gnus', 'mutt', 'claws-mail'):
+            if not utils.mua_exists(utils.MUA[muaname]):
+                self.fail("%s MUA program not available" % muaname)
 
-    def test_mua_name(self):
+    def test_mua_custom_exists(self):
+        mymua = utils.mua_create('ls -l', '-h')
 
-        for mua in ('mh', 'nmh', 'gnus', 'mutt', 'claws-mail'):
-            self.assertIsInstance(utils.mua_name(mua), utils.Mua)
+        self.assertTrue(utils.mua_exists(mymua))
 
-        self.assertEqual(utils.mua_name('mua-of-my-dreams'), 'mua-of-my-dreams')
+        del utils.MUA['ls']
+        del utils.MUAVERSION['ls']
 
+    def test_mua_version(self):
+        self.assertEqual(utils.mua_version_cmd('mutt'), 'mutt -v')
+
+    def test_mua_set_custom(self):
+        utils.mua_create('mua-of-my-dreams --send', '-h')
+
+        self.assertEqual(utils.mua_version_cmd('mua-of-my-dreams'),
+                                               'mua-of-my-dreams -h')
+
+        del utils.MUA['mua-of-my-dreams']
+        del utils.MUAVERSION['mua-of-my-dreams']
 
 class TestBugreportBody(unittest.TestCase):
     def test_get_dependency_info(self):

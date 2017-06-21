@@ -793,7 +793,8 @@ def main():
                     editor='', offline=False, verify=True, check_uid=True,
                     testmode=False, attachments=[], keyid='', body=None,
                     bodyfile=None, smtptls=False, smtpuser='', smtppasswd='',
-                    paranoid=False, mbox_reader_cmd=None)
+                    paranoid=False, mbox_reader_cmd=None,
+                    mua_version="--version")
 
     # Convention: consider `option.foo' names read-only; they always contain
     # the original value as determined by the cascade of command-line options
@@ -861,6 +862,8 @@ def main():
                       dest='bugnumber', help='specify a bug number to look for')
     parser.add_option('--mua', dest='mua',
                       help='send the report using the specified mail user agent')
+    parser.add_option('--mua-version', dest='mua_version',
+                      help='an mua option that results in no action (to verify mua is available)')
     parser.add_option('--mta', dest='mta', help='send the report using the '
                                                 'specified mail transport agent')
     parser.add_option('--list-cc', action='append', dest='listcc',
@@ -1054,16 +1057,13 @@ def main():
             ewrite("The directory %s does not exist; exiting.\n" % options.draftpath)
             sys.exit(1)
 
-    if options.mua and not options.template:
-        if not utils.mua_is_supported(options.mua):
-            ewrite("Specified mail user agent is not supported; exiting.\n")
-            sys.exit(1)
+    if isinstance(options.mua, str):
+        options.mua = utils.mua_create(options.mua, options.mua_version)
 
+    if options.mua and not options.template:
         if not utils.mua_exists(options.mua):
             ewrite("Selected mail user agent cannot be found; exiting.\n")
             sys.exit(1)
-
-        options.mua = utils.mua_name(options.mua)
 
     # try to import the specified UI, but only if template
     # is not set (it's useful only in 'text' UI).

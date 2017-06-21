@@ -286,7 +286,14 @@ Specify an alternate \fIMTA\fP, instead of \fB/usr/sbin/sendmail\fP
 .B \-\-mua=MUA
 Instead of spawning an editor to revise the bug report, use the
 specified \fIMUA\fP (mail user agent) to edit and send
-it. \fB--mutt\fP and \fB--nmh\fP options are processed.
+it. The string \fI%s\fP is replaced with the file containing the
+message to send. It is appended to the command if not present.
+.TP
+.B \-\-mua-version=OPTION
+If the \fB--mua\fP option is used, specify the command-line MUA option
+for returning with no action. This is used by reportbug to determine
+that the MUA is installed and available. If not specified, this
+defaults to "--version".
 .TP
 .B \-n, \-\-mh, \-\-nmh
 Instead of spawning an editor to revise the bug report, use the
