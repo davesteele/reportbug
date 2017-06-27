@@ -818,6 +818,9 @@ def main():
                       help='specify report class for GNATS BTSes')
     parser.add_option('-d', '--debug', action='store_true', default=False,
                       dest='debugmode', help='send report only to yourself')
+    parser.add_option('-D', '--desktop-default', action='store_const',
+                      dest='mua', const=utils.MUA['desktop-default'],
+                      help='send using the default desktop mail user agent')
     parser.add_option('--test', action="store_true", default=False,
                       dest="testmode",
                       help="operate in test mode (maintainer use only)")

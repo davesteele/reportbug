@@ -39,9 +39,12 @@ import email
 import socket
 import subprocess
 import pipes
+import email
+import urllib
 
 from .urlutils import open_url
 from string import ascii_letters, digits
+
 
 # Paths for dpkg
 DPKGLIB = '/var/lib/dpkg'
@@ -907,11 +910,61 @@ class Gnus(Mua):
                          " || emacs --eval %s" % (elisp, elisp))
 
 
+class MailtoMua(Mua):
+    """Send using a MUA accepting 'mailto' URIs"""
+
+    def __init__(self):
+        pass
+
+    def _get_opt(self, hdr, opt, msg):
+        optstr = ""
+
+        hdrs = msg.get_all(hdr)
+        if hdrs:
+            payload = ','.join([urllib.parse.quote(x) for x in hdrs])
+            optstr = "%s=%s&" % (opt, payload)
+
+        return optstr
+
+    def get_mailto(self, message):
+        msg = email.message_from_string(message)
+
+        mailto = "mailto:"
+        mailto += ','.join([urllib.parse.quote(x) for x in msg.get_all("To")])
+        mailto += "?"
+
+        for hdr, opt in [("Subject", "subject"), ("Cc", "cc"), ("Bcc", "bcc")]:
+            mailto += self._get_opt(hdr, opt, msg)
+
+        mailto += "body=" + urllib.parse.quote(msg.get_payload())
+
+        return mailto
+
+    def get_cmd(self, mailto):
+        raise NotImplementedError("get_cmd not implemented")
+
+    def send(self, filename):
+        with open(filename, 'r') as fp:
+            message = fp.read()
+
+        mailto = self.get_mailto(message)
+
+        return ui.system(self.get_cmd(mailto))
+
+
+class DefMua(MailtoMua):
+    """Send using the desktop default MUA"""
+
+    def get_cmd(self, mailto):
+        return "xdg-open \"%s\"" % mailto
+
+
 MUA = {
     'mutt': Mua('mutt -H'),
     'mh': Mua('/usr/bin/mh/comp -use -file'),
     'gnus': Gnus(),
     'claws-mail': Mua('claws-mail --compose-from-file'),
+    'desktop-default': DefMua(),
 }
 MUA['nmh'] = MUA['mh']
 
@@ -921,6 +974,7 @@ MUAVERSION = {
     MUA['mh']: '/usr/bin/mh/comp -use -file',
     MUA['gnus']: 'emacs --version',
     MUA['claws-mail']: 'claws-mail --version',
+    MUA['desktop-default']: 'xdg-open --help',
 }
 
 
@@ -936,6 +990,8 @@ def mua_is_supported(mua):
         mua_tmp = 'mutt'
     elif mua == 'claws-mail' or mua == MUA['claws-mail']:
         mua_tmp = 'claws-mail'
+    elif mua == 'desktop-default' or mua == MUA['desktop-default']:
+        mua_tmp = 'desktop-default'
     else:
         mua_tmp = mua
     if mua_tmp not in MUA:
@@ -956,6 +1012,8 @@ def mua_exists(mua):
         mua_tmp = MUA['mutt']
     elif mua == 'claws-mail' or mua == MUA['claws-mail']:
         mua_tmp = MUA['claws-mail']
+    elif mua == 'desktop-default' or mua == MUA['desktop-default']:
+        mua_tmp = MUA['desktop-default']
     else:
         mua_tmp = MUA[mua]
     output = '/dev/null'

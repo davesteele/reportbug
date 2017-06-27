@@ -8,6 +8,9 @@ from nose.plugins.attrib import attr
 import debianbts
 import mock
 import subprocess
+import textwrap
+import email
+
 
 
 class TestUtils(unittest.TestCase):
@@ -374,23 +377,66 @@ class TestSystemInformation(unittest.TestCase):
 class TestMua(unittest.TestCase):
     def test_mua_is_supported(self):
 
-        for mua in ('mh', 'nmh', 'gnus', 'mutt', 'claws-mail'):
+        for mua in utils.MUA:
             self.assertTrue(utils.mua_is_supported(mua))
 
         self.assertFalse(utils.mua_is_supported('mua-of-my-dreams'))
 
     def test_mua_exists(self):
 
-        for mua in ('mh', 'nmh', 'gnus', 'mutt', 'claws-mail'):
+        for mua in utils.MUA:
             if not utils.mua_exists(mua):
                 self.fail("%s MUA program not available" % mua)
 
     def test_mua_name(self):
 
-        for mua in ('mh', 'nmh', 'gnus', 'mutt', 'claws-mail'):
+        for mua in utils.MUA:
             self.assertIsInstance(utils.mua_name(mua), utils.Mua)
 
         self.assertEqual(utils.mua_name('mua-of-my-dreams'), 'mua-of-my-dreams')
+
+
+message = textwrap.dedent("""
+    Content-Type: text/plain; charset="us-ascii"
+    MIME-Version: 1.0
+    Content-Transfer-Encoding: 7bit
+    From: Joe User <joeu@example.com>
+    To: Debian Bug Tracking System <submit@bugs.debian.org>
+    Subject: buggy-pkg: doesn't work
+    Bcc: David Steele <steele@debian.org>
+    X-Reportbug-Version: 7.1.7
+
+    Package: buggy-pkg
+    Version: 2.4.1-1
+    Severity: normal
+
+    Dear Maintainer, ...
+    """)[1:]
+
+
+class TestDefMua(unittest.TestCase):
+    def setUp(self):
+        self.defmua = utils.DefMua()
+        self.mailto = self.defmua.get_mailto(message)
+        self.cmd = self.defmua.get_cmd(self.mailto)
+
+    def test_is_cmd(self):
+        self.assertEqual(self.cmd[0:len("xdg-open \"mailto:")], "xdg-open \"mailto:")
+
+    def test_body(self):
+        self.assertTrue("body=Package%3A%20buggy-pkg" in self.mailto)
+
+    def test_to(self):
+        self.assertTrue(
+            "mailto:Debian%20Bug%20Tracking%20System%20%3Csubmit%40bugs.debian.org%3E?"
+            in self.mailto
+        )
+
+    def test_bcc(self):
+        self.assertTrue("bcc=David" in self.mailto)
+
+    def test_subject(self):
+        self.assertTrue("subject=buggy-pkg%3A%20doesn%27t%20work&" in self.mailto)
 
 
 class TestBugreportBody(unittest.TestCase):
@@ -695,3 +741,7 @@ class TestMisc(unittest.TestCase):
         self.assertTrue(utils.check_package_name('reportbug2001'))
         self.assertFalse(utils.check_package_name('UPPERCASE'))
         self.assertFalse(utils.check_package_name('((()))'))
+
+
+if __name__ == '__main__':
+    unittest.main()
